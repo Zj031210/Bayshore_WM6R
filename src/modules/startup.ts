@@ -54,7 +54,7 @@ export default class StartupModule extends Module {
 
             // Declare GhostCompetitionSchedule
             let competitionSchedule;
-            let lastCompetitionId: number = 0;
+            let lastCompetitionId;
             if(ocmEventDate)
             {
                 let pastDay = date - ocmEventDate.competitionEndAt
