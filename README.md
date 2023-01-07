@@ -3,6 +3,8 @@
 # Bayshore 6R
 Wangan Midnight Maximum Tune 6R server reimplementation written in TypeScript
 
+this repo is based on the original repo (https://github.com/ProjectAsakura/Bayshore)
+
 ## What is working
  - Same like 6
  - VSORG [Expedition] (some of them maybe... expedition saving works)
