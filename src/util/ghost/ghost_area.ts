@@ -1,4 +1,4 @@
-// Ghost Area
+// OCM Area
 export async function GhostArea(area: number)
 {
     let rampVal = 0;

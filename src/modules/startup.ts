@@ -1,5 +1,5 @@
 import { Application } from "express";
-import {Module} from "module";
+import { Module } from "module";
 import { prisma } from "..";
 
 // Import Proto
@@ -24,20 +24,15 @@ export default class StartupModule extends Module {
             // Get current / previous active OCM Event
             let ocmEventDate = await prisma.oCMEvent.findFirst({
                 where: {
-					// qualifyingPeriodStartAt is less than equal current date
+					// qualifyingPeriodStartAt is less than current date
 					qualifyingPeriodStartAt: { lte: date },
 		
-					// competitionEndAt is greater than equal current date
+					// competitionEndAt is greater than current date
 					competitionEndAt: { gte: date },
 				},
-                orderBy: [
-                    {
-                        dbId: 'desc'
-                    },
-                    {
-                        competitionEndAt: 'desc',
-                    },
-                ],
+                orderBy: {
+                    competitionEndAt: 'desc',
+                }
             });
 
             let pastEvent = 0;
@@ -45,7 +40,7 @@ export default class StartupModule extends Module {
             {
                 ocmEventDate = await prisma.oCMEvent.findFirst({
                     orderBy:{
-                        dbId: 'desc'
+                        competitionId: 'desc'
                     }
                 });
 
@@ -54,13 +49,15 @@ export default class StartupModule extends Module {
 
             // Declare GhostCompetitionSchedule
             let competitionSchedule;
-            let lastCompetitionId;
+            let lastCompetitionId: number = 0;
             if(ocmEventDate)
             {
                 let pastDay = date - ocmEventDate.competitionEndAt
 
                 if(pastDay < 604800)
                 {
+                    console.log("OCM Event Available");
+
                     // Creating GhostCompetitionSchedule
                     competitionSchedule = wm.wm.protobuf.GhostCompetitionSchedule.create({ 
 
@@ -96,35 +93,13 @@ export default class StartupModule extends Module {
                     });
                 }
 
-                if(pastEvent === 1 && pastDay < 604800)
+                if(pastEvent === 1)
                 {
+                    console.log("Previous OCM Event Available");
+
                     lastCompetitionId = ocmEventDate.competitionId
                 }
             }
-
-            // Get VSORG Event Date
-            let ghostExpeditionDate = await prisma.ghostExpeditionEvent.findFirst({
-                where: {
-					// qualifyingPeriodStartAt is less than equal current date
-					startAt: { lte: date },
-		
-					// competitionEndAt is greater than equal current date
-					aftereventEndAt: { gte: date },
-				},
-            })
-            let vsOrgEventDate;
-
-            if(ghostExpeditionDate)
-            {
-                vsOrgEventDate = wm.wm.protobuf.GhostExpeditionSchedule.create({ 
-                    ghostExpeditionId: ghostExpeditionDate.ghostExpeditionId,
-                    startAt: ghostExpeditionDate.startAt,
-                    endAt: ghostExpeditionDate.endAt,
-                    aftereventEndAt: ghostExpeditionDate.aftereventEndAt,
-                    opponentCountry: ghostExpeditionDate.opponentCountry // not sure if this connected to ghostExpeditionId or not
-                });
-            }
-            
             
             // Response data
             let msg = {
@@ -141,14 +116,8 @@ export default class StartupModule extends Module {
                     pluses: 0,
                     releaseAt: 0 // idk what this is
                 },
-
-                // OCM
                 latestCompetitionId: lastCompetitionId || null,
-                competitionSchedule: competitionSchedule || null, // OCM Event Available or not
-
-                // VSORG
-                expeditionSchedule: vsOrgEventDate || null,
-                expeditionEventWasHeld: true
+                competitionSchedule: competitionSchedule || null // OCM Event Available or not
             }
 
             // Encode the response
@@ -221,22 +190,14 @@ export default class StartupModule extends Module {
         app.post('/method/update_event_mode_serial', async (req, res) => {
 
             let body = wm.wm.protobuf.UpdateEventModeSerialRequest.decode(req.body);
-            console.log(body);
 
             // TODO: Actual stuff here
             // This is literally just bare-bones so the shit boots
 
-            // Get current date
-            let date = Math.floor(new Date().getTime() / 1000);
-
-
 			// Response data
 			let msg = {
 				error: wm.wm.protobuf.ErrorCode.ERR_SUCCESS,
-                serialError: wm.wm.protobuf.EventModeSerialErrorCode.SERIAL_SUCCESS,
-                eventModeSerial: '280813401138',
-                startAt: date - 50000,
-                endAt: date + 500000
+                serialError: wm.wm.protobuf.EventModeSerialErrorCode.SERIAL_NO_INPUT
 			}
 
 			// Encode the response

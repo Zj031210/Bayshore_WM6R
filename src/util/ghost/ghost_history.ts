@@ -1,7 +1,6 @@
+// Import Proto
 import { prisma } from "../..";
 import { Config } from "../../config";
-
-// Import Proto
 import { wm } from "../../wmmt/wm.proto";
 
 // Import Util
@@ -113,7 +112,6 @@ export async function saveGhostHistory(body: wm.protobuf.SaveGameResultRequest)
 }
 
 
-// Save OCM ghost history battle
 export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultRequest)
 {
     let updateNewTrail: boolean = true;
@@ -144,7 +142,7 @@ export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultReques
             saveExGhostHistory.result = rgResult.opponents[0].result;
         }
 
-        // Get played Area
+        // Get area
         if(common.sanitizeInput(rgResult.path))
         {
             let getArea = await ghost_get_area_from_path.getArea(rgResult.path);
@@ -159,14 +157,14 @@ export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultReques
     // Get currently active OCM event
     let ocmEventDate = await prisma.oCMEvent.findFirst({ 
         where: {
-            // qualifyingPeriodStartAt is less than equal current date
+            // qualifyingPeriodStartAt is less than current date
             qualifyingPeriodStartAt: { lte: date },
 
-            // competitionEndAt is greater than equal current date
+            // competitionEndAt is greater than current date
             competitionEndAt: { gte: date },
         },
         orderBy:{
-            dbId: 'desc'
+            competitionId: 'desc'
         }
     });
 
@@ -223,11 +221,11 @@ export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultReques
                         competitionId: ocmEventDate!.competitionId,
                         startAt: 
                         {
-                            lte: date, // competitionStartAt is less than equal current date
+                            lte: date, // competitionStartAt is less than current date
                         },
                         closeAt:
                         {
-                            gte: date, // competitionCloseAt is greater than equal current date
+                            gte: date, // competitionCloseAt is greater than current date
                         }
                     },
                     select:{
@@ -334,10 +332,15 @@ export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultReques
             let OCM_periodId = await prisma.oCMPeriod.findFirst({ 
                 where:{
                     competitionDbId: ocmEventDate!.dbId,
-                    competitionId: ocmEventDate!.competitionId
-                },
-                orderBy:{
-                    periodId: 'desc'
+                    competitionId: ocmEventDate!.competitionId,
+                    startAt: 
+                    {
+                        lte: date, // period StartAt is less than current date
+                    },
+                    closeAt:
+                    {
+                        gte: date, // period CloseAt is greater than current date
+                    }
                 },
                 select:{
                     periodId: true
@@ -363,7 +366,7 @@ export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultReques
             if(ocmTallyfind)
             {
                 console.log('Updating OCM Tally Record');
-                
+
                 // Update the OCM Tally Record
                 await prisma.oCMTally.update({
                     where:{
@@ -394,440 +397,4 @@ export async function saveOCMGhostHistory(body: wm.protobuf.SaveGameResultReques
 
     // Return the value to 'BASE_PATH/src/util/games/ghost.ts'
     return { updateNewTrail }
-}
-
-
-// Save VSORG ghost history battle
-export async function saveVSORGGhostHistory(body: wm.protobuf.SaveGameResultRequest)
-{
-    console.log('Saving VSORG Ghost Battle History');
-
-    // Get the ghost expedition result for the car
-    let expeditionResult = body.rgResult?.expeditionResult;
-
-    // Get current date
-    let date = Math.floor(new Date().getTime() / 1000);
-
-    // expeditionResult is set
-    if (expeditionResult)
-    {
-        // Expedition update data
-        let dataExpedition = {
-            ghostExpeditionId: common.sanitizeInput(expeditionResult.ghostExpeditionId),
-            sugorokuPoint: common.sanitizeInput(expeditionResult.sugorokuPoint),
-            earnedScore: common.sanitizeInput(expeditionResult.earnedScore),
-            score: common.sanitizeInput(expeditionResult.score),
-        }
-        
-        let checkExpeditionData = await prisma.ghostExpedition.findFirst({
-            where:{
-                carId: body.carId
-            }
-        }); 
-
-        // Update the expedition data
-        if(checkExpeditionData)
-        {
-            await prisma.ghostExpedition.update({
-                where:{
-                    dbId: checkExpeditionData.dbId
-                },
-                data: {
-                    ...dataExpedition
-                }
-            }); 
-        }
-        // Create the expedition data
-        else
-        {
-            await prisma.ghostExpedition.create({
-                data: {
-                    carId: body.carId,
-                    ...dataExpedition
-                }
-            }); 
-        }
-        
-        if(expeditionResult.earnedItems!.length !== 0)
-        {
-            console.log('User Item reward from VSORG available, continuing ...');
-
-            // Get current date
-            let date = Math.floor(new Date().getTime() / 1000);
-
-            for(let i=0; i<expeditionResult.earnedItems!.length; i++)
-            {
-                await prisma.userItem.create({
-                    data: {
-                        category: expeditionResult.earnedItems![i].category,
-                        itemId: expeditionResult.earnedItems![i].itemId,
-                        userId: body.car!.userId!,
-                        earnedAt: date,
-                        type: 0
-                    }
-                });
-            }
-        }
-
-        if(expeditionResult.aftereventBonus!.length !== 0)
-        {
-            console.log('User Item after event reward from VSORG available, continuing ...');
-
-            // Get current date
-            let date = Math.floor(new Date().getTime() / 1000);
-
-            for(let i=0; i<expeditionResult.aftereventBonus!.length; i++)
-            {
-                /*
-                await prisma.userItem.create({
-                    data: {
-                        category: expeditionResult.earnedItems![i].category,
-                        itemId: expeditionResult.earnedItems![i].itemId,
-                        userId: body.car!.userId!,
-                        earnedAt: date,
-                        type: 0
-                    }
-                });*/
-            }
-        }
-    }
-
-    let updateNewTrail: boolean = true;
-    let saveExGhostHistory: any = {};
-
-    // Get the car result for the car
-    let car = body?.car;
-
-    if(car)
-    {
-        saveExGhostHistory = {
-            carId: common.sanitizeInput(car.carId),
-            tunePower: common.sanitizeInput(car.tunePower),
-            tuneHandling: common.sanitizeInput(car.tuneHandling),
-            playedAt: common.sanitizeInputNotZero(body.playedAt),
-            playedShopName: Config.getConfig().shopName
-        }
-    }
-
-    // Get the rg result for the car
-    let rgResult = body?.rgResult;
-
-    if(rgResult)
-    {
-        if(rgResult.opponents)
-        {
-            // Get first opponent carId
-            saveExGhostHistory.opponent1CarId = rgResult.opponents[0].carId; 
-
-            // Get first opponent tunePower
-            saveExGhostHistory.opponent1TunePower = rgResult.opponents[0].tunePower; 
-
-            // Get first opponent tunePower
-            saveExGhostHistory.opponent1TuneHandling = rgResult.opponents[0].tuneHandling; 
-
-            // Get the advantage distance between first opponent and user
-            saveExGhostHistory.opponent1Result = rgResult.opponents[0].result; 
-        }
-
-        // Get played Area
-        if(common.sanitizeInput(rgResult.path))
-        {
-            let getArea = await ghost_get_area_from_path.getArea(rgResult.path);
-
-            saveExGhostHistory.area = getArea.area
-        }
-    }
-
-    await prisma.ghostBattleRecord.create({
-        data: saveExGhostHistory
-    });
-
-    let getArea = await ghost_get_area_from_path.getArea(rgResult!.path);
-
-    // Check if defeating Wanted car
-    let checkWantedCar = await prisma.ghostExpeditionWantedCar.findFirst({
-        where:{
-            carId: rgResult!.opponents![0].carId,
-            area: getArea.area
-        }
-    })
-
-    // Wanted car available
-    if(checkWantedCar)
-    {
-        if(rgResult!.opponents![0].result > 0)
-        {
-            console.log('Wanted Car Defeated');
-
-            await prisma.ghostExpeditionWantedCar.delete({
-                where:{
-                    dbId: checkWantedCar.dbId
-                }
-            })
-        }
-        else
-        {
-            console.log('Lose from Wanted Car');
-
-            // Making wanted car
-            let dataWantedGhost = {
-                carId: common.sanitizeInput(rgResult!.opponents![0].carId),
-                bonus: checkWantedCar.bonus + 1,
-                defeatedMeCount: checkWantedCar.defeatedMeCount + 1
-            }
-
-            await prisma.ghostExpeditionWantedCar.update({
-                where:{
-                    dbId: checkWantedCar.dbId
-                },
-                data: dataWantedGhost
-            })
-        }
-    }
-    // If lose the race maybe
-    else
-    {
-        if(rgResult!.opponents![0].result < 0)
-        {
-            // Making wanted car
-            let dataWantedGhost = {
-                carId: common.sanitizeInput(rgResult!.opponents![0].carId),
-                bonus: 0,
-                numOfHostages: 1,
-                defeatedMeCount: 1,
-                area: getArea.area
-            }
-
-            console.log('Creating Wanted Car');
-
-            await prisma.ghostExpeditionWantedCar.create({
-                data: dataWantedGhost
-            })
-        }
-    }
-
-    // Check full tune ticket piece
-    let checkFTTicketPiece = await prisma.userItem.findMany({
-        where:{
-            userId: body.car!.userId!,
-            category: 202,
-            itemId: 2
-        }
-    });
-
-    if(checkFTTicketPiece.length >= 6)
-    {
-        // Give full tune ticket :)
-        await prisma.userItem.create({
-            data:{
-                userId: body.car!.userId!,
-                category: 203,
-                itemId: 5,
-                type: 0,
-                earnedAt: date
-            }
-        });
-        
-        // Remove full tune ticket piece :(
-        await prisma.userItem.deleteMany({
-            where:{
-                userId: body.car!.userId!,
-                category: 202,
-                itemId: 2,
-            }
-        });
-    }
-
-    // Sending stamp to opponents
-    await ghost_stamp.sendStamp(body);
-
-    // Return the value to 'BASE_PATH/src/util/games/ghost.ts'
-    return { updateNewTrail }
-}
-
-
-// Save VSORG ghost history battle but retiring
-export async function saveVSORGGhostRetireHistory(body: wm.protobuf.SaveGameResultRequest)
-{
-    console.log('Saving VSORG Retiring Ghost Battle History');
-
-    // Get the ghost result for the car
-    let ghostResult = body?.rgResult;
-
-    // Get current date
-    let date = Math.floor(new Date().getTime() / 1000);
-
-    // ghostResult is set
-    let dataGhost: any;
-    if (ghostResult)
-    {
-        dataGhost = {
-            rgPlayCount: common.sanitizeInput(ghostResult.rgPlayCount), 
-        }
-
-        // Update the car properties
-        await prisma.car.update({
-            where: {
-                carId: body.carId
-            },
-            data: {
-                ...dataGhost
-            }
-        });
-
-        let getArea = await ghost_get_area_from_path.getArea(ghostResult.path);
-
-        // Making wanted car
-        let dataWantedGhost = {
-            carId: common.sanitizeInput(ghostResult.opponents![0].carId),
-            bonus: 0,
-            numOfHostages: 1,
-            defeatedMeCount: 1,
-            area: getArea.area
-        }
-
-        let checkWantedCar = await prisma.ghostExpeditionWantedCar.findFirst({
-            where:{
-                carId: dataWantedGhost.carId,
-                area: getArea.area
-            }
-        })
-
-        if(checkWantedCar)
-        {
-            console.log('Updating Wanted Car');
-
-            dataWantedGhost.bonus = checkWantedCar.bonus + 1;
-            dataWantedGhost.defeatedMeCount = checkWantedCar.defeatedMeCount + 1;
-
-            await prisma.ghostExpeditionWantedCar.update({
-                where:{
-                    dbId: checkWantedCar.dbId
-                },
-                data: dataWantedGhost
-            })
-        }
-        else
-        {
-            console.log('Creating Wanted Car');
-
-            await prisma.ghostExpeditionWantedCar.create({
-                data: dataWantedGhost
-            })
-        }
-        
-    }
-
-    // Get the ghost expedition result for the car
-    let expeditionResult = body.rgResult?.expeditionResult;
-
-    // expeditionResult is set
-    if (expeditionResult)
-    {
-        // Expedition update data
-        let dataExpedition = {
-            ghostExpeditionId: common.sanitizeInput(expeditionResult.ghostExpeditionId),
-            sugorokuPoint: common.sanitizeInput(expeditionResult.sugorokuPoint),
-            earnedScore: common.sanitizeInput(expeditionResult.earnedScore),
-            score: common.sanitizeInput(expeditionResult.score),
-        }
-        
-        let checkExpeditionData = await prisma.ghostExpedition.findFirst({
-            where:{
-                carId: body.carId
-            }
-        }); 
-
-        // Update the expedition data
-        if(checkExpeditionData)
-        {
-            await prisma.ghostExpedition.update({
-                where:{
-                    dbId: checkExpeditionData.dbId
-                },
-                data: {
-                    ...dataExpedition
-                }
-            }); 
-        }
-        // Create the expedition data
-        else
-        {
-            await prisma.ghostExpedition.create({
-                data: {
-                    carId: body.carId,
-                    ...dataExpedition
-                }
-            }); 
-        }
-        
-        if(expeditionResult.earnedItems!.length !== 0)
-        {
-            console.log('User Item reward from VSORG available, continuing ...');
-
-            for(let i=0; i<expeditionResult.earnedItems!.length; i++)
-            {
-                await prisma.userItem.create({
-                    data: {
-                        category: expeditionResult.earnedItems![i].category,
-                        itemId: expeditionResult.earnedItems![i].itemId,
-                        userId: body.car!.userId!,
-                        earnedAt: date,
-                        type: 0
-                    }
-                });
-            }
-        }
-
-        if(expeditionResult.aftereventBonus!.length !== 0)
-        {
-            console.log('User Item after event reward from VSORG available, continuing ...');
-
-            for(let i=0; i<expeditionResult.aftereventBonus!.length; i++)
-            {
-                /*
-                await prisma.userItem.create({
-                    data: {
-                        category: expeditionResult.earnedItems![i].category,
-                        itemId: expeditionResult.earnedItems![i].itemId,
-                        userId: body.car!.userId!,
-                        earnedAt: date,
-                        type: 0
-                    }
-                });*/
-            }
-        }
-    }
-
-    // Check full tune ticket piece
-    let checkFTTicketPiece = await prisma.userItem.findMany({
-        where:{
-            userId: body.car!.userId!,
-            category: 202,
-            itemId: 2
-        }
-    });
-
-    if(checkFTTicketPiece.length >= 6)
-    {
-        // Give full tune ticket :)
-        await prisma.userItem.create({
-            data:{
-                userId: body.car!.userId!,
-                category: 203,
-                itemId: 5,
-                type: 0,
-                earnedAt: date
-            }
-        });
-        
-        // Remove full tune ticket piece :(
-        await prisma.userItem.deleteMany({
-            where:{
-                userId: body.car!.userId!,
-                category: 202,
-                itemId: 2,
-            }
-        });
-    }
 }

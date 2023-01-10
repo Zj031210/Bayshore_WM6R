@@ -1,7 +1,8 @@
-import e, { Application } from "express";
+import { Application } from "express";
 import { Module } from "../module";
 import { prisma } from "..";
 import { Config } from "../config";
+let MersenneTwister = require('chancer');
 
 // Import Proto
 import * as wm from "../wmmt/wm.proto";
@@ -138,8 +139,7 @@ export default class GameModule extends Module {
 			// Check region id is 0
 			if(body.car!.regionId! === 0)
 			{
-				let randomRegionId = Math.floor(Math.random() * 47) + 1;
-				body.car!.regionId = randomRegionId;
+				body.car!.regionId = MersenneTwister.int(1, 47);
 			}
 
 			// Check playet at timestamp
@@ -256,7 +256,7 @@ export default class GameModule extends Module {
 					error: wm.wm.protobuf.ErrorCode.ERR_SUCCESS,
 
 					// Set session for saving ghost trail Ghost Battle Mode or Crown Ghost Battle Mode
-					ghostSessionId: Math.floor(Math.random() * 100) + 1 
+					ghostSessionId: MersenneTwister.int(1, 100)
 				}
 			}
 			// OCM Battle game mode is completed
@@ -266,7 +266,7 @@ export default class GameModule extends Module {
 					error: wm.wm.protobuf.ErrorCode.ERR_SUCCESS,
 
 					// Set session for saving ghost trail OCM Ghost Battle Mode
-					ghostSessionId: Math.floor(Math.random() * 100) + 101 
+					ghostSessionId: MersenneTwister.int(101, 200)
 				}
 			}
 			// Story mode or TA mode is completed
@@ -426,21 +426,19 @@ export default class GameModule extends Module {
 				});
 
 				// If opponent is default ghost or random ghost
-				if(!(ghostOpponentCar))
-				{ 
+				if(!(ghostOpponentCar)){ 
 					ghostOpponentCar = await prisma.car.findFirst({});
 					ghostOpponentCar!.name = 'Ｓ６６０';
 					ghostOpponentCar!.manufacturer = 12;
 					ghostOpponentCar!.model = 105;
 					ghostOpponentCar!.visualModel = 130;
 					ghostOpponentCar!.regionId = 18;
-					ghostOpponentCar!.country = 'JPN';
+					ghostOpponentCar!.country = 'GLB';
 				}
 
 				if(ghostOpponentCar!.regionId === 0)
 				{
-					let randomRegionId = Math.floor(Math.random() * 47) + 1;
-					ghostOpponentCar!.regionId = randomRegionId;
+					ghostOpponentCar!.regionId = MersenneTwister.int(1, 47);
 				}
 
 				// Get Opponent 1 tune
@@ -470,21 +468,19 @@ export default class GameModule extends Module {
 					});
 
 					// If opponent is default ghost or random ghost
-					if(!(ghostOpponentCar2))
-					{
+					if(!(ghostOpponentCar2)){
 						ghostOpponentCar2 = await prisma.car.findFirst({});
 						ghostOpponentCar2!.name = 'Ｓ６６０';
 						ghostOpponentCar2!.manufacturer = 12;
 						ghostOpponentCar2!.model = 105;
 						ghostOpponentCar2!.visualModel = 130;
 						ghostOpponentCar2!.regionId = 18;
-						ghostOpponentCar2!.country = 'JPN';
+						ghostOpponentCar2!.country = 'GLB';
 					}
 
 					if(ghostOpponentCar!.regionId === 0)
 					{
-						let randomRegionId = Math.floor(Math.random() * 47) + 1;
-						ghostOpponentCar2!.regionId = randomRegionId;
+						ghostOpponentCar2!.regionId = MersenneTwister.int(1, 47);
 					}
 
 					// Get Opponent 2 tune
@@ -511,21 +507,19 @@ export default class GameModule extends Module {
 					});
 
 					// If opponent is default ghost or random ghost
-					if(!(ghostOpponentCar3))
-					{ 
+					if(!(ghostOpponentCar3)){ 
 						ghostOpponentCar3 = await prisma.car.findFirst({});
 						ghostOpponentCar3!.name = 'Ｓ６６０';
 						ghostOpponentCar3!.manufacturer = 12;
 						ghostOpponentCar3!.model = 105;
 						ghostOpponentCar3!.visualModel = 130;
 						ghostOpponentCar3!.regionId = 18;
-						ghostOpponentCar3!.country = 'JPN';
+						ghostOpponentCar3!.country = 'GLB';
 					}
 
 					if(ghostOpponentCar!.regionId === 0)
 					{
-						let randomRegionId = Math.floor(Math.random() * 47) + 1;
-						ghostOpponentCar3!.regionId = randomRegionId;
+						ghostOpponentCar3!.regionId = MersenneTwister.int(1, 47);
 					}
 
 					// Get Opponent 3 tune

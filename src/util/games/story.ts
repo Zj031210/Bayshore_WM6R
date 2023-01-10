@@ -35,7 +35,7 @@ export async function saveStoryResult(body: wm.protobuf.SaveGameResultRequest, c
             }
 
             // If the current consecutive wins is greater than the previous max
-            if (storyResult.stConsecutiveWins! > car!.stConsecutiveWinsMax) 
+            if (storyResult.stConsecutiveWins! > car.stConsecutiveWinsMax) 
             {
                 // Update the maximum consecutive wins;
                 data.stConsecutiveWinsMax = storyResult.stConsecutiveWins;
@@ -46,14 +46,20 @@ export async function saveStoryResult(body: wm.protobuf.SaveGameResultRequest, c
             {
                 // Convert them to BigInt and add to the data
                 data.stLoseBits = common.getBigIntFromLong(storyResult.stLoseBits);
-                stLoseBits = data.stLoseBits
-
+                if(data.stLoseBits > 0)
+                {
+                    stLoseBits = data.stLoseBits
+                }
                 // If a loss has been recorded
                 if (stLoseBits > 0)
                 {
                     // End the win streak
                     data.stConsecutiveWins = 0;
                 }
+            }
+            else
+            {
+                stLoseBits = 0;
             }
 
             // Calling check step function (BASE_PATH/src/util/games/games_util/check_step.ts)

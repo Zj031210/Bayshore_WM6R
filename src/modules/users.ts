@@ -1,4 +1,4 @@
-import e, { Application } from "express";
+import { Application } from "express";
 import { Config } from "../config";
 import { Module } from "module";
 import { prisma } from "..";
@@ -19,9 +19,6 @@ export default class UserModule extends Module {
 
             // Get the request body for the load user request
 			let body = wm.wm.protobuf.LoadUserRequest.decode(req.body);
-			
-			// Trim Mojibake
-			body.cardChipId = body.cardChipId.replace('��������0000', '');
 
             // Get the user from the database
 			let user = await prisma.user.findFirst({
@@ -317,11 +314,10 @@ export default class UserModule extends Module {
 				}
 			}
 
-			// Change Ghost Stamp tutorial to true (preventing soft lock from the game)
+			// Change Ghost Stamp tutorial to true
 			if(user.tutorials[20] === false)
 			{
-				console.log('Change Ghost Stamp tutorial to true');
-
+				console.log('Change Ghost Stamp tutorial to true')
 				for(let i=20; i<25; i++)
 				{
 					user.tutorials[i] = true
@@ -352,6 +348,7 @@ export default class UserModule extends Module {
 			{
 				ghostExpeditionLocked = false;
 			}
+			
 
             // Response data
 			let msg = {
@@ -412,14 +409,14 @@ export default class UserModule extends Module {
 			// Get current active OCM Event
 			let ocmEventDate = await prisma.oCMEvent.findFirst({
 				where: {
-					// qualifyingPeriodStartAt is less than equal current date
+					// qualifyingPeriodStartAt is less than current date
 					qualifyingPeriodStartAt: { lte: date },
 		
-					// competitionEndAt is greater than equal current date
+					// competitionEndAt is greater than current date
 					competitionEndAt: { gte: date },
 				},
 				orderBy:{
-					dbId: 'desc'
+					competitionId: 'desc'
 				}
 			});
 			
@@ -544,37 +541,20 @@ export default class UserModule extends Module {
 					}
 				}
 				
-				if(!ocmEventDate)
-				{
-					let ocmEventDate = await prisma.oCMEvent.findFirst({
-						orderBy: [
-							{
-								dbId: 'desc'
-							},
-							{
-								competitionEndAt: 'desc',
-							},
-						],
-					});
-
-					if(ocmEventDate)
-					{
-						let pastDay = date - ocmEventDate.competitionEndAt;
-
-						if(pastDay < 604800)
-						{
-							let checkRegisteredGhost = await prisma.ghostRegisteredFromTerminal.findFirst({
-								where:{
-									carId: user.cars[i].carId
-								}
-							});
-
-							if(checkRegisteredGhost)
-							{
-								carStates[i].hasOpponentGhost = true;
-							}
-						}
+				// OCM HoF Ghost Registered from Terminal
+				let checkRegisteredGhost = await prisma.ghostRegisteredFromTerminal.findFirst({
+					where:{
+						carId: user.cars[i].carId,
 					}
+				});
+
+				if(checkRegisteredGhost)
+				{
+					carStates[i].hasOpponentGhost = true;
+				}
+				else
+				{
+					carStates[i].hasOpponentGhost = false;
 				}
 			}
 

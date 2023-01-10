@@ -36,6 +36,7 @@ export async function ocmTallying(body: wm.protobuf.LoadGhostCompetitionInfoRequ
             {
                 let top1advantage = null;
                 let currentResult = 0;
+
                 for(let i=0; i<gbRecordTally.length; i++)
                 {
                     // Get the Top 1 Advantage
@@ -118,12 +119,13 @@ export async function ocmTallying(body: wm.protobuf.LoadGhostCompetitionInfoRequ
                             data: data
                         });
                     }
-                }
+                } 
             }
 
             // Check if someone is retiring or use cheat engine time up
             let checkPlayRecord = await prisma.oCMPlayRecord.findMany({ 
                 where:{
+                    competitionId: body.competitionId,
                     NOT: {
                         carId:{ in: arr }
                     }
@@ -183,7 +185,9 @@ export async function ocmTallying(body: wm.protobuf.LoadGhostCompetitionInfoRequ
                             where:{
                                 carId: OCMTally[0].carId,
                                 competitionId: body.competitionId,
-                                ocmMainDraw: true
+                            },
+                            orderBy:{
+                                playedAt: 'desc'
                             }
                         })
 
@@ -297,11 +301,11 @@ export async function ocmTallying(body: wm.protobuf.LoadGhostCompetitionInfoRequ
                 // Get the Top 1 Advantage
                 if(top1advantage === null)
                 {
-                    top1advantage = OCMTally[i].result;
+                    top1advantage = OCMTally[0].result;
 
                     let getTrail = await prisma.oCMGhostTrail.findFirst({
                         where:{
-                            carId: OCMTally[i].carId,
+                            carId: OCMTally[0].carId,
                             competitionId: body.competitionId,
                             ocmMainDraw: true
                         }

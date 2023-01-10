@@ -1,8 +1,8 @@
 import { Application } from "express";
 import { Module } from "module";
 import { prisma } from "..";
-import { Car, CarGTWing } from "@prisma/client";
 import { Config } from "../config";
+let MersenneTwister = require('chancer');
 
 // Import Proto
 import * as wm from "../wmmt/wm.proto";
@@ -28,14 +28,14 @@ export default class GhostModule extends Module {
             // Get currently active OCM event (query still not complete)
 			let ocmEventDate = await prisma.oCMEvent.findFirst({ 
 				where: {
-					// qualifyingPeriodStartAt is less than equal current date
+					// qualifyingPeriodStartAt is less than current date
 					qualifyingPeriodStartAt: { lte: date },
 		
-					// competitionEndAt is greater than equal current date
+					// competitionEndAt is greater than current date
 					competitionEndAt: { gte: date },
 				},
                 orderBy:{
-                    dbId: 'desc'
+                    competitionId: 'desc'
                 }
             });
 			
@@ -115,11 +115,11 @@ export default class GhostModule extends Module {
 							competitionId: ocmEventDate!.competitionId,
 							startAt: 
 							{
-								lte: date, // competitionStartAt is less than equal current date
+								lte: date, // competitionStartAt is less than current date
 							},
 							closeAt:
 							{
-								gte: date, // competitionCloseAt is greater than equal current date
+								gte: date, // competitionCloseAt is greater than current date
 							}
 						}
 					});
@@ -226,7 +226,7 @@ export default class GhostModule extends Module {
 						{
 							let itemId = 0;
 
-							// 16th - C1
+							// 16th - C1 Outbound
 							if(ocmEventDate.competitionId === 1)
 							{
 								itemId = 204;
@@ -246,32 +246,32 @@ export default class GhostModule extends Module {
 							{
 								itemId = 222;
 							}
-							// 6th - C1
+							// 6th - C1 Inbound
 							else if(ocmEventDate.competitionId === 5) 
 							{
 								itemId = 35;
 							}
-							// 7th - Fukutoshin
-							else if(ocmEventDate.competitionId === 6) 
-							{
-								itemId = 41;
-							}
-							// 8th - Hakone
-							else if(ocmEventDate.competitionId === 7) 
-							{
-								itemId = 47;
-							}
 							// 20th - Kobe
-							else if(ocmEventDate.competitionId === 8) 
+							else if(ocmEventDate.competitionId === 6) 
 							{
 								itemId = 228;
 							}
+							// 7th - Fukutoshin
+							else if(ocmEventDate.competitionId === 7) 
+							{
+								itemId = 41;
+							}
 							// 21st - Hiroshima
-							else if(ocmEventDate.competitionId === 9) 
+							else if(ocmEventDate.competitionId === 8) 
 							{
 								itemId = 234;
 							}
-							// 1st - C1
+							// 8th - Hakone
+							else if(ocmEventDate.competitionId === 9) 
+							{
+								itemId = 47;
+							}
+							// 1st - C1 Outbound
 							else if(ocmEventDate.competitionId === 10) 
 							{
 								itemId = 5;
@@ -414,7 +414,7 @@ export default class GhostModule extends Module {
 					competitionEndAt: { gte: date },
 				},
                 orderBy:{
-                    dbId: 'desc'
+                    competitionId: 'desc'
                 }
             });
 
@@ -492,8 +492,7 @@ export default class GhostModule extends Module {
 					// If regionId is 0 or not set, game will crash after defeating the ghost
 					if(cars!.regionId === 0)
 					{
-						let randomRegionId = Math.floor(Math.random() * 47) + 1;
-						cars!.regionId = randomRegionId;
+						cars!.regionId = MersenneTwister.int(1, 47);
 					}
 
                     // Set the tunePower used when playing ghost crown
@@ -615,8 +614,7 @@ export default class GhostModule extends Module {
 					// If regionId is 0 or not set, game will crash after defeating the ghost
 					if(cars!.regionId === 0)
 					{
-						let randomRegionId = Math.floor(Math.random() * 47) + 1;
-						cars!.regionId = randomRegionId;
+						cars!.regionId = MersenneTwister.int(1, 47);
 					}
 
                     // Set the tunePower used when playing ghost crown
@@ -647,7 +645,7 @@ export default class GhostModule extends Module {
 
 
 					let ocmEventDate = await prisma.oCMEvent.findFirst({
-						where: {
+						where:{
 							competitionId: competition_id
 						}
 					});
@@ -706,7 +704,8 @@ export default class GhostModule extends Module {
 			let msg = {
 				error: wm.wm.protobuf.ErrorCode.ERR_SUCCESS,
 				competitionId: competition_id,
-				ghostCar: ghostCars!,
+				specialGhostId: competition_id,
+				ghostCar: ghostCars,
 				trailId: ghostTrailId,
 				updatedAt: date,
 				competitionSchedule: competitionSchedule || null

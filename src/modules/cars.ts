@@ -4,6 +4,7 @@ import { Module } from "module";
 import { prisma } from "..";
 import { User } from "@prisma/client";
 import Long from "long";
+let MersenneTwister = require('chancer');
 
 // Import Proto
 import * as wm from "../wmmt/wm.proto";
@@ -49,210 +50,144 @@ export default class CarModule extends Module {
 			// Convert the database lose bits to a Long
 			let longLoseBits = Long.fromString(car!.stLoseBits.toString());
 
-			// Get current date
-            let date = Math.floor(new Date().getTime() / 1000);
+			// Get Registered Target
+			let getTarget = await prisma.ghostRegisteredFromTerminal.findFirst({
+				where:{
+					carId: body.carId
+				}
+			});
+			let opponentGhost;
+			let opponentTrailId;
+			let opponentCompetitionId;
+			let registeredTarget: boolean = false;
 
-			// Get current / previous active OCM Event
-            let ocmEventDate = await prisma.oCMEvent.findFirst({
-                where: {
-					// qualifyingPeriodStartAt is less than equal current date
-					qualifyingPeriodStartAt: { lte: date },
-		
-					// competitionEndAt is greater than equal current date
-					competitionEndAt: { gte: date },
-				},
-                orderBy: [
-                    {
-                        dbId: 'desc'
-                    },
-                    {
-                        competitionEndAt: 'desc',
-                    },
-                ],
-            });
+			if(getTarget)
+			{
+				console.log('Registered Opponents Available');
 
-			let pastEvent = 0;
-			if(!(ocmEventDate))
-            {
-            	ocmEventDate = await prisma.oCMEvent.findFirst({
-					orderBy: [
-						{
-							dbId: 'desc'
-						},
-						{
-							competitionEndAt: 'desc',
-						},
-					],
+				let getTargetTrail = await prisma.oCMTop1GhostTrail.findFirst({
+					where:{
+						carId: getTarget.opponentCarId,
+						competitionId: Number(getTarget.competitionId)
+					},
+					orderBy:{
+						periodId: 'desc'
+					}
 				});
 
-				pastEvent = 1;
-			}
-
-            // Current / previous OCM Event is found
-			let ghostCarsNo1;
-			let trailIdNo1: number = 0;
-            if(ocmEventDate)
-            {
-                let pastDay = date - ocmEventDate.competitionEndAt
-
-				// Get Previous Top 1 OCM
-                if(pastDay < 604800 && pastEvent === 1)
-                {
-					let checkRegisteredGhost = await prisma.ghostRegisteredFromTerminal.findFirst({
+				if(getTargetTrail)
+				{
+					let getTargetCar = await prisma.car.findFirst({
 						where:{
-							carId: body.carId
+							carId: getTarget.opponentCarId
+						},
+						include:{
+							gtWing: true,
+							lastPlayedPlace: true
 						}
 					});
 
-					if(checkRegisteredGhost)
-					{
-						console.log('OCM Ghost Registered From Terminal');
-
-						let getNo1OCM = await prisma.oCMTally.findFirst({
-							where:{
-								competitionId: ocmEventDate.competitionId,
-								periodId: 999999999
-							},
-							orderBy:{
-								competitionId: 'desc'
-							}
-						});
-
-						if(getNo1OCM)
-						{
-							console.log('Getting registered car data');
-							
-							// Get Car Data
-							let cars = await prisma.car.findFirst({
-								where:{
-									carId: getNo1OCM.carId
-								},
-								include:{
-									gtWing: true,
-									lastPlayedPlace: true
-								}
-							});
-
-							// Get Ghost Trail
-							let ghostTrailNo1 = await prisma.oCMTop1GhostTrail.findFirst({
-								where:{
-									carId: getNo1OCM.carId,
-									competitionId: ocmEventDate.competitionId
-								},
-								orderBy:{
-									dbId: 'asc'
-								}
-							});
-
-							if(ghostTrailNo1)
-							{
-								console.log('Getting registered ghost trail');
-
-								trailIdNo1 = ghostTrailNo1.dbId;
-
-								ghostCarsNo1 = wm.wm.protobuf.GhostCar.create({ 
-									car: {
-										...cars!,
-									},
-									area: ghostTrailNo1.area,
-									ramp: ghostTrailNo1.ramp,
-									path: ghostTrailNo1.path,
-									nonhuman: false,
-									type: wm.wm.protobuf.GhostType.GHOST_NORMAL,
-									trailId: trailIdNo1
-								});
-							}
-							
-						}
-					}
+					opponentGhost = wm.wm.protobuf.GhostCar.create({
+						car: {
+							...getTargetCar!,
+							tunePower: getTargetTrail!.tunePower,
+							tuneHandling: getTargetTrail!.tuneHandling,
+						},
+						area: getTargetTrail!.area,
+						ramp: getTargetTrail!.ramp,
+						path: getTargetTrail!.path,
+						nonhuman: false,
+						type: wm.wm.protobuf.GhostType.GHOST_NORMAL,
+						trailId: getTargetTrail!.dbId
+					});
+					opponentTrailId = Number(getTargetTrail!.dbId);
+					opponentCompetitionId = Number(getTarget.competitionId);
 				}
+
+				registeredTarget = true;
 			}
 
-			// Check opponents target
-			let opponentTargetCount = await prisma.carStampTarget.count({
-				where:{
-					stampTargetCarId: body.carId,
-					recommended: true,
-				},
-				orderBy:{
-					locked: 'desc'
-				}
-			})
-			let carsChallengers;	
+			// Check opponents stamp target
+			// Will skip this if user's have Hall of Fame ghost registered
+			let carsChallengers;
 			let returnCount = 1;
-			
-			if(opponentTargetCount > 0)
+			let opponentTargetCount = 0;
+			if(registeredTarget === false)
 			{
-				console.log('Challengers Available');
-
-				// Randomize pick
-				let random: number = Math.floor(Math.random() * opponentTargetCount);
-
-				// Check opponents target
-				let opponentTarget = await prisma.carStampTarget.findMany({
+				opponentTargetCount = await prisma.carStampTarget.count({
 					where:{
 						stampTargetCarId: body.carId,
 						recommended: true,
 					},
 					orderBy:{
 						locked: 'desc'
-					},
-					skip: random,
-  					take: 1,
-				});
+					}
+				})
 				
-				// Get all of the friend cars for the carId provided
-				let challengers = await prisma.carChallenger.findFirst({
-					where: {
-						challengerCarId: opponentTarget[0].carId,
-						carId: body.carId
-					},
-					orderBy:{
-						id: 'desc'
-					}
-				});
-			
-				if(challengers)
+				if(opponentTargetCount > 0)
 				{
-					returnCount = opponentTarget[0].returnCount;
+					console.log('Challengers Available');
 
-					let carTarget = await prisma.car.findFirst({
+					// Randomize pick
+					let random: number = MersenneTwister.int(0, opponentTargetCount - 1);
+
+					// Check opponents target
+					let opponentTarget = await prisma.carStampTarget.findMany({
 						where:{
-							carId: challengers.challengerCarId
+							stampTargetCarId: body.carId,
+							recommended: true,
 						},
-						include:{
-							gtWing: true,
-							lastPlayedPlace: true
-						}
-					})
-
-					let result = 0;
-					if(challengers.result > 0)
-					{
-						result = -Math.abs(challengers.result);
-					}
-					else{
-						result = Math.abs(challengers.result);
-					}
-
-					carsChallengers = wm.wm.protobuf.ChallengerCar.create({
-						car: carTarget!,
-						stamp: challengers.stamp,
-						result: result, 
-						area: challengers.area
+						orderBy:{
+							locked: 'desc'
+						},
+						skip: random,
+						take: 1,
 					});
+					
+					// Get all of the friend cars for the carId provided
+					let challengers = await prisma.carChallenger.findFirst({
+						where: {
+							challengerCarId: opponentTarget[0].carId,
+							carId: body.carId
+						},
+						orderBy:{
+							id: 'desc'
+						}
+					});
+				
+					if(challengers)
+					{
+						returnCount = opponentTarget[0].returnCount;
+
+						let carTarget = await prisma.car.findFirst({
+							where:{
+								carId: challengers.challengerCarId
+							},
+							include:{
+								gtWing: true,
+								lastPlayedPlace: true
+							}
+						})
+
+						let result = 0;
+						if(challengers.result > 0)
+						{
+							result = -Math.abs(challengers.result);
+						}
+						else{
+							result = Math.abs(challengers.result);
+						}
+
+						carsChallengers = wm.wm.protobuf.ChallengerCar.create({
+							car: carTarget!,
+							stamp: challengers.stamp,
+							result: result, 
+							area: challengers.area
+						});
+					}
 				}
 			}
-
-			// VS ORG
-			let getVSORGData = await prisma.ghostExpedition.findFirst({
-				where:{
-					carId: body.carId
-				},
-				orderBy:{
-					dbId: 'desc'
-				}
-			})
+			
 			
 
             // Response data
@@ -280,20 +215,9 @@ export default class CarModule extends Module {
 				numOfChallengers: opponentTargetCount + 1 || null,
 
 				// OCM Challenge Top 1
-				opponentGhost: ghostCarsNo1 || null,
-				opponentTrailId: trailIdNo1 || null,
-				opponentCompetitionId: ocmEventDate?.competitionId || null,
-
-				// Highway
-				rgScoreVs_2: car!.rgScoreVs_2,
-				rgHighwayClearCount: car!.rgHighwayClearCount,
-				rgHighwayPoint: car!.rgHighwayPoint,
-				rgHighwayStationClearBits: car!.rgHighwayStationClearBits,
-				rgHighwayPreviousDice: car!.rgHighwayPreviousDice,
-
-				// VS ORG
-				rgExpeditionScore: getVSORGData?.score || 0,
-				ghostExpeditionState: wm.wm.protobuf.GhostExpeditionParticipantState.EXPEDITION_NOT_PARTICIPATED,
+				opponentGhost: opponentGhost || null,
+				opponentTrailId: opponentTrailId || null,
+				opponentCompetitionId: opponentCompetitionId || null
 			};
 
             // Generate the load car response message
@@ -477,11 +401,8 @@ export default class CarModule extends Module {
 			}
 
 			// Randomize regionId
-			let randomRegionId: number = 18;
-			for(let i=0; i<5; i++)
-			{
-				randomRegionId = Math.floor(Math.random() * 47) + 1;
-			}
+			let regionId: number = 18;
+			regionId = MersenneTwister.int(1, 47);
 			
 			// Default car values
 			let carInsert = {
@@ -498,7 +419,7 @@ export default class CarModule extends Module {
 				carSettingsDbId: settings.dbId,
 				carStateDbId: state.dbId,
 				carGTWingDbId: gtWing.dbId,
-				regionId: randomRegionId,
+				regionId: regionId,
 				lastPlayedAt: date,
 				lastPlayedPlaceId: 1, // Server Default
 			};
@@ -783,7 +704,7 @@ export default class CarModule extends Module {
 					})
 				}
 			}
-			
+
 			// Response data
             let msg = {
                 error: wm.wm.protobuf.ErrorCode.ERR_SUCCESS,
