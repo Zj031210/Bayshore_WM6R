@@ -289,6 +289,41 @@ export default class GhostModule extends Module {
                 arrayWantedCarId.push(wantedCarList[i].carId);
             }
 
+            // Get Expedition (VSORG) VS Ghost Region
+            let ghostExpeditionRegion = await prisma.ghostExpeditionEvent.findFirst({
+                where: {
+					ghostExpeditionId: body.ghostExpeditionId
+				},
+            });
+
+            let country = 'JPN';
+            let regionId: number = 20;
+            if(ghostExpeditionRegion!.opponentCountry === 'IDN')
+            {
+                country = 'IDN';
+                regionId = 18;
+            }
+            else if(ghostExpeditionRegion!.opponentCountry === 'AUS')
+            {
+                country = 'AUS';
+                regionId = 2;
+            }
+            else if(ghostExpeditionRegion!.opponentCountry === 'CHN')
+            {
+                country = 'CHN';
+                regionId = 10;
+            }
+            else if(ghostExpeditionRegion!.opponentCountry === 'HKG')
+            {
+                country = 'HKG';
+                regionId = 15;
+            }
+            else if(ghostExpeditionRegion!.opponentCountry === 'PHL')
+            {
+                country = 'PHL';
+                regionId = 30;
+            }
+
             // Get Canditate list
             let car = await prisma.car.findMany({
                 where:{
@@ -326,11 +361,13 @@ export default class GhostModule extends Module {
                     // Push current number to array
 					arr.push(randomNumber); 
 
-                    car[randomNumber].regionId = 20; // JPN (country is become intl country by default from the game)
-
                     // Push data to Ghost car proto
                     lists_candidates.push(wm.wm.protobuf.GhostCar.create({
-                        car: car[randomNumber],
+                        car: {
+                            ...car[randomNumber],
+                            country: country,
+                            regionId: regionId
+                        },
                         area: area,
                         ramp: ramp,
                         path: path,

@@ -100,6 +100,29 @@ export default class StartupModule extends Module {
                     lastCompetitionId = ocmEventDate.competitionId
                 }
             }
+
+            // Get VSORG Event Date
+            let ghostExpeditionDate = await prisma.ghostExpeditionEvent.findFirst({
+                where: {
+					// qualifyingPeriodStartAt is less than equal current date
+					startAt: { lte: date },
+		
+					// competitionEndAt is greater than equal current date
+					aftereventEndAt: { gte: date },
+				},
+            })
+            let vsOrgEventDate;
+
+            if(ghostExpeditionDate)
+            {
+                vsOrgEventDate = wm.wm.protobuf.GhostExpeditionSchedule.create({ 
+                    ghostExpeditionId: ghostExpeditionDate.ghostExpeditionId,
+                    startAt: ghostExpeditionDate.startAt,
+                    endAt: ghostExpeditionDate.endAt,
+                    aftereventEndAt: ghostExpeditionDate.aftereventEndAt,
+                    opponentCountry: ghostExpeditionDate.opponentCountry // not sure if this connected to ghostExpeditionId or not
+                });
+            }
             
             // Response data
             let msg = {
@@ -116,8 +139,14 @@ export default class StartupModule extends Module {
                     pluses: 0,
                     releaseAt: 0 // idk what this is
                 },
+                
+                // OCM
                 latestCompetitionId: lastCompetitionId || null,
-                competitionSchedule: competitionSchedule || null // OCM Event Available or not
+                competitionSchedule: competitionSchedule || null, // OCM Event Available or not
+
+                // VSORG
+                expeditionSchedule: vsOrgEventDate || null,
+                expeditionEventWasHeld: true
             }
 
             // Encode the response

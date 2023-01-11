@@ -188,7 +188,15 @@ export default class CarModule extends Module {
 				}
 			}
 			
-			
+			// VS ORG
+			let getVSORGData = await prisma.ghostExpedition.findFirst({
+				where:{
+					carId: body.carId
+				},
+				orderBy:{
+					dbId: 'desc'
+				}
+			})
 
             // Response data
 			let msg = {
@@ -217,7 +225,11 @@ export default class CarModule extends Module {
 				// OCM Challenge Top 1
 				opponentGhost: opponentGhost || null,
 				opponentTrailId: opponentTrailId || null,
-				opponentCompetitionId: opponentCompetitionId || null
+				opponentCompetitionId: opponentCompetitionId || null,
+
+				// VS ORG
+				rgExpeditionScore: getVSORGData?.score || 0,
+				ghostExpeditionState: wm.wm.protobuf.GhostExpeditionParticipantState.EXPEDITION_NOT_PARTICIPATED,
 			};
 
             // Generate the load car response message
