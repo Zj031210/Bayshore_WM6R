@@ -473,6 +473,7 @@ model GhostExpeditionWantedCar {
   ghostExpeditionId   Int       @default(1)
   area                Int       @default(0)
   locked              Boolean   @default(false)
+  lockTime            Int       @default(0)
   challengerCarId     Int?
 }
 

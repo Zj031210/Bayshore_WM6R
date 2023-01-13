@@ -700,6 +700,14 @@ export async function saveGhostBattleResult(body: wm.protobuf.SaveGameResultRequ
             }
         }); 
     }
+    // Retiring VS ORG
+    else if(body.rgResult!.selectionMethod === wmproto.wm.protobuf.GhostSelectionMethod.GHOST_EXPEDITION)
+    {
+        console.log('VSORG (Expedition) Ghost Mode Found but Retiring');
+
+        await ghost_history.saveVSORGGhostRetireHistory(body);
+    }
+    // TODO: Highway Ghost Mode Retiring Saving
 
     // Return the value to 'BASE_PATH/src/modules/game.ts'
     return { ghostModePlay, updateNewTrail, OCMModePlay }

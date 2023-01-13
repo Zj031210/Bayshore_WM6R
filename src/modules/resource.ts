@@ -648,15 +648,29 @@ export default class ResourceModule extends Module {
             // TODO: Actual stuff here
             // This is literally just bare-bones so the shit boots
 
-            // Check wanted car
-            /*let wantedCarList = await prisma.ghostExpeditionWantedCar.findMany({
+            // Get the current date/time (unix epoch)
+			let date = Math.floor(new Date().getTime() / 1000);
+
+            // Get VSORG Event Date
+            let ghostExpeditionDate = await prisma.ghostExpeditionEvent.findFirst({
+                where: {
+					// qualifyingPeriodStartAt is less than equal current date
+					startAt: { lte: date },
+		
+					// competitionEndAt is greater than equal current date
+					aftereventEndAt: { gte: date },
+				},
+            });
+
+            // Check Wanted Car
+            let wantedCarList = await prisma.ghostExpeditionWantedCar.findMany({
                 where:{
-                    ghostExpeditionId: 1
-                },
-                orderBy:{
-                    dbId: 'desc'
+                    ghostExpeditionId: ghostExpeditionDate?.ghostExpeditionId,
+                    locked: true
                 }
-            })
+            });
+
+            // Wanted Car Exists
             if(wantedCarList.length > 0)
             {
                 for(let i=0; i<wantedCarList.length; i++)
@@ -665,11 +679,13 @@ export default class ResourceModule extends Module {
                         where:{
                             carId: wantedCarList[i].carId
                         }
-                    })
+                    });
+
                     let ghostcar = wm.wm.protobuf.GhostCar.create({
                         car: wantedCar!,
                         area: wantedCarList[i].area,
                     });
+
                     wanteds.push(wm.wm.protobuf.WantedCar.create({
                         ghost: ghostcar,
                         wantedId: wantedCarList[i].carId,
@@ -677,7 +693,7 @@ export default class ResourceModule extends Module {
                         numOfHostages: wantedCarList[i].numOfHostages
                     }))
                 }
-            }*/
+            }
 
             // Encode the response
 			let message = wmsrv.wm.protobuf.LockWantedList.encode({wanteds});

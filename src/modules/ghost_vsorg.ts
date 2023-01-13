@@ -427,10 +427,14 @@ export default class GhostModule extends Module {
 
                 if(wantedCar)
                 {
-                    wantedCar.regionId = 20; // JPN
-
                     let ghostcar = wm.wm.protobuf.GhostCar.create({
-                        car: wantedCar,
+                        car: {
+                            ...wantedCar,
+                            country: country,
+                            regionId: regionId
+                        },
+                        area: area,
+                        ramp: ramp,
                         path: path,
                         nonhuman: false,
                         type: wm.wm.protobuf.GhostType.GHOST_REGION,
@@ -481,10 +485,49 @@ export default class GhostModule extends Module {
         })
 
         
+        // Lock Wanted
         app.post('/method/lock_wanted', async (req, res) => {
 
             // Get the request body for the load stamp target request
             let body = wmsrv.wm.protobuf.LockWantedRequest.decode(req.body);
+
+            // Get the current date/time (unix epoch)
+			let date = Math.floor(new Date().getTime() / 1000);
+
+            // Wanted Lock Variable
+            let locked: boolean = false;
+            let lockTime: number = 0;
+
+            // Handling to auto unlock the Wanted Ghost
+            await prisma.ghostExpeditionWantedCar.updateMany({
+                where:{
+                    lockTime: {
+                        lt: date
+                    }
+                },
+                data:{
+                    locked: locked,
+                    lockTime: lockTime
+                }
+            });
+
+            // Lock the Wanted Ghost
+            if(body.lockTime > 0)
+            {
+                locked = true;
+                lockTime = date + 600;
+            }
+
+            // Change the Wanted Ghost Lock Status
+            await prisma.ghostExpeditionWantedCar.updateMany({
+                where:{
+                    carId: body.wantedId
+                },
+                data:{
+                    locked: locked,
+                    lockTime: lockTime
+                }
+            });
 
             // Response data
             let msg = {
@@ -499,6 +542,7 @@ export default class GhostModule extends Module {
         })
 
         
+        // Load Ghost Expedition Result
         app.post('/method/load_ghost_expedition_result', async (req, res) => {
 
             // Get the request body for the load stamp target request
