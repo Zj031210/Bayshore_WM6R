@@ -50,6 +50,7 @@ export async function saveStoryResult(body: wm.protobuf.SaveGameResultRequest, c
                 {
                     stLoseBits = data.stLoseBits
                 }
+                
                 // If a loss has been recorded
                 if (stLoseBits > 0)
                 {
