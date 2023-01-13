@@ -59,6 +59,7 @@ export default class ResourceModule extends Module {
              common.sendResponse(message, res);
         })
 
+
         // Get Ranking data for attract screen (TA, Ghost, VS)
         app.get('/resource/ranking', async (req, res) => {
 
@@ -496,12 +497,15 @@ export default class ResourceModule extends Module {
             common.sendResponse(message, res);
         })
 
+
+        // File for File List
         app.use("/static", e.static(
             path.join(__dirname, '..', '..', 'static'), 
             { cacheControl: false }
         ));
 
 
+        // File List
         app.get('/resource/file_list', async (req, res) => {
 
             console.log('file_list');
@@ -535,6 +539,7 @@ export default class ResourceModule extends Module {
 		})
 
         
+        // Ghost List
         app.get('/resource/ghost_list', async (req, res) => {
 
             console.log('ghost_list');
@@ -554,5 +559,170 @@ export default class ResourceModule extends Module {
 			// Send the response to the client
             common.sendResponse(message, res);
 		})
+
+
+        // Ghost Expedition (VSORG) Ranking
+        app.get('/resource/ghost_expedition_ranking', async (req, res) => {	
+
+            console.log('ghost_expedition_ranking');
+
+            let ghostExpeditionRankings: wm.wm.protobuf.GhostExpeditionRankingEntry[] = []
+
+            // Get VSORG / Expedition Participant
+            let localScores = await prisma.ghostExpedition.findMany({
+                where:{
+                    ghostExpeditionId: 1
+                },
+                orderBy:{
+                    score: 'desc'
+                }
+            })
+
+            // Get car score
+            let car;
+            let todaysMvps;
+            for(let i=0; i<localScores.length; i++)
+            {
+                car = await prisma.car.findFirst({
+                    where:{
+                        carId: localScores[i].carId
+                    },
+                    orderBy:{
+                        carId: 'asc'
+                    },
+                    include:{
+                        gtWing: true,
+                        lastPlayedPlace: true
+                    }
+                });
+
+                
+                if(car)
+                {    
+                    ghostExpeditionRankings.push(wm.wm.protobuf.GhostExpeditionRankingEntry.create({
+                        rank: i+1,
+                        score: localScores[i].score,
+                        car: car!
+                    }));
+
+                    if(i === 0)
+                    {
+                        todaysMvps = wm.wm.protobuf.GhostExpeditionRankingEntry.create({
+                            rank: i+1,
+                            score: localScores[i].score,
+                            car: car!
+                        });
+                    }
+                }
+            }   
+
+            // Totaling score for store score
+            let sum = 0;
+            for(let i=0; i<localScores.length; i++)
+            {
+                sum += localScores[i].score;
+            }
+
+            // Response data
+            let msg = {
+                localScore: sum,
+                todaysMvp: todaysMvps || null,
+                localRanking: ghostExpeditionRankings || null
+            };
+
+            // Encode the response
+			let message = wm.wm.protobuf.GhostExpeditionRanking.encode(msg);
+
+            // Send the response to the client
+            common.sendResponse(message, res);
+        })
+
+
+        // Lock Wanted List
+        app.get('/resource/lock_wanted_list', async (req, res) => {
+
+            console.log('lock_wanted_list');
+
+            let wanteds: wmsrv.wm.protobuf.WantedCar[] = [];
+
+            // TODO: Actual stuff here
+            // This is literally just bare-bones so the shit boots
+
+            // Check wanted car
+            /*let wantedCarList = await prisma.ghostExpeditionWantedCar.findMany({
+                where:{
+                    ghostExpeditionId: 1
+                },
+                orderBy:{
+                    dbId: 'desc'
+                }
+            })
+            if(wantedCarList.length > 0)
+            {
+                for(let i=0; i<wantedCarList.length; i++)
+                {
+                    let wantedCar = await prisma.car.findFirst({
+                        where:{
+                            carId: wantedCarList[i].carId
+                        }
+                    })
+                    let ghostcar = wm.wm.protobuf.GhostCar.create({
+                        car: wantedCar!,
+                        area: wantedCarList[i].area,
+                    });
+                    wanteds.push(wm.wm.protobuf.WantedCar.create({
+                        ghost: ghostcar,
+                        wantedId: wantedCarList[i].carId,
+                        bonus: wantedCarList[i].bonus,
+                        numOfHostages: wantedCarList[i].numOfHostages
+                    }))
+                }
+            }*/
+
+            // Encode the response
+			let message = wmsrv.wm.protobuf.LockWantedList.encode({wanteds});
+
+            // Send the response to the client
+            common.sendResponse(message, res);
+        })
+
+
+        // Ghost Expedition Participants
+        app.get('/resource/ghost_expedition_participants', async (req, res) => {
+
+            console.log('ghost_expedition_participants');
+
+            // Get url query
+            let ghost_expedition_id = Number(req.query.ghost_expedition_id);
+            let place_id = String(req.query.place_id);
+
+            // Get local store participant
+            let localParticipant = await prisma.ghostExpedition.findMany({
+                where:{
+                    ghostExpeditionId: ghost_expedition_id
+                },
+                orderBy:{
+                    score: 'desc'
+                }
+            })
+
+            let arrayParticipant = [];
+            for(let i=0; i<localParticipant.length; i++)
+            {
+                arrayParticipant.push(localParticipant[i].carId);
+            }
+
+            // Response data
+            let msg = {
+                placeId: place_id,
+                participantCars: arrayParticipant
+            };
+
+            // Encode the response
+			let message = wm.wm.protobuf.GhostExpeditionParticipants.encode(msg);
+
+            // Send the response to the client
+            common.sendResponse(message, res);
+        })
     }
 }
