@@ -122,7 +122,7 @@ export default class CarModule extends Module {
 					orderBy:{
 						locked: 'desc'
 					}
-				})
+				});
 				
 				if(opponentTargetCount > 0)
 				{

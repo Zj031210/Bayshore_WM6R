@@ -700,6 +700,7 @@ export async function saveGhostBattleResult(body: wm.protobuf.SaveGameResultRequ
             }
         }); 
     }
+    
     // Retiring VS ORG
     else if(body.rgResult!.selectionMethod === wmproto.wm.protobuf.GhostSelectionMethod.GHOST_EXPEDITION)
     {

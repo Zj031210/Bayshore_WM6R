@@ -397,7 +397,7 @@ export default class GhostModule extends Module {
                         where:{
                             carId: localScores[i].carId
                         }
-                    })
+                    });
 
                     // Push to recent store winner 
                     recentWinners.push(wm.wm.protobuf.CarEntry.create({
@@ -423,7 +423,7 @@ export default class GhostModule extends Module {
                         gtWing: true,
                         lastPlayedPlace: true
                     }
-                })
+                });
 
                 if(wantedCar)
                 {

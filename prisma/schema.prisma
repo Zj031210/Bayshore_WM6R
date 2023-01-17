@@ -485,3 +485,14 @@ model GhostExpeditionEvent {
   aftereventEndAt     Int
   opponentCountry     String
 }
+
+model FileList {
+  fileId                Int     @id @default(autoincrement())
+  fileType              Int
+  fileSize              Int
+  urlFileName           String
+  sha1sum               String
+  notBefore             Int
+  notAfter              Int
+  filePath              String
+}
