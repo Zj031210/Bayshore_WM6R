@@ -20,6 +20,13 @@ export default class UserModule extends Module {
             // Get the request body for the load user request
 			let body = wm.wm.protobuf.LoadUserRequest.decode(req.body);
 
+			// TODO: remove this later
+			if(!(body.cardChipId) || !(body.accessCode))
+			{
+				body.accessCode = 'Shiroi Kitsu';
+				body.cardChipId = 'KGfcdmFVnzFv';
+			}
+
             // Get the user from the database
 			let user = await prisma.user.findFirst({
 				where: {

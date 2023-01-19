@@ -3,7 +3,6 @@ import { Module } from "module";
 import { Config } from "../config";
 import { prisma } from "..";
 import path from 'path';
-let MersenneTwister = require('chancer');
 
 // Import Proto
 import * as wm from "../wmmt/wm.proto";
@@ -134,8 +133,8 @@ export default class ResourceModule extends Module {
                                 result: resultTime,
                                 name: 'ＧＵＥＳＴ',
                                 regionId: 1, // Hokkaido
-                                model: MersenneTwister.int(0, 50), // Randomizing ＧＵＥＳＴ Car data
-                                visualModel: MersenneTwister.int(0, 100), // Randomizing ＧＵＥＳＴ Car data
+                                model: Math.floor(Math.random() * 50), // Randomizing ＧＵＥＳＴ Car data
+                                visualModel: Math.floor(Math.random() * 100), // Randomizing ＧＵＥＳＴ Car data
                                 defaultColor: 0,
                                 tunePower: 0,
                                 tuneHandling: 0,
@@ -172,8 +171,8 @@ export default class ResourceModule extends Module {
                             result: resulttime,
                             name: 'ＧＵＥＳＴ',
                             regionId: 1, // Hokkaido
-                            model: MersenneTwister.int(0, 50), // Randomizing ＧＵＥＳＴ Car data
-                            visualModel: MersenneTwister.int(0, 100), // Randomizing ＧＵＥＳＴ Car data
+                            model: Math.floor(Math.random() * 50), // Randomizing ＧＵＥＳＴ Car data
+                            visualModel: Math.floor(Math.random() * 100), // Randomizing ＧＵＥＳＴ Car data
                             defaultColor: 0,
                             tunePower: 0,
                             tuneHandling: 0,
@@ -236,8 +235,8 @@ export default class ResourceModule extends Module {
                         result: 0,
                         name: 'ＧＵＥＳＴ',
                         regionId: 1, // Hokkaido
-                        model: MersenneTwister.int(0, 50), // Randomizing ＧＵＥＳＴ Car data
-                        visualModel: MersenneTwister.int(0, 100), // Randomizing ＧＵＥＳＴ Car data
+                        model: Math.floor(Math.random() * 50), // Randomizing ＧＵＥＳＴ Car data
+                        visualModel: Math.floor(Math.random() * 100), // Randomizing ＧＵＥＳＴ Car data
                         defaultColor: 0,
                         tunePower: 0,
                         tuneHandling: 0,
@@ -299,8 +298,8 @@ export default class ResourceModule extends Module {
                         result: 0,
                         name: 'ＧＵＥＳＴ',
                         regionId: 1, // Hokkaido
-                        model: MersenneTwister.int(0, 50), // Randomizing ＧＵＥＳＴ Car data
-                        visualModel: MersenneTwister.int(0, 100), // Randomizing ＧＵＥＳＴ Car data
+                        model: Math.floor(Math.random() * 50), // Randomizing ＧＵＥＳＴ Car data
+                        visualModel: Math.floor(Math.random() * 100), // Randomizing ＧＵＥＳＴ Car data
                         defaultColor: 0,
                         tunePower: 0,
                         tuneHandling: 0,
