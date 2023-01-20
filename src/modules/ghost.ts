@@ -489,6 +489,7 @@ export default class GhostModule extends Module {
 					lists_ghostcar.push(wm.wm.protobuf.GhostCar.create({
 						car: {
 							...ghost_default_cars.cars,
+							regionId: body.regionId,
 							tunePower: tunePowerDefault,
 							tuneHandling: tuneHandlingDefault,
 							lastPlayedAt: date,
